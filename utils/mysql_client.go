@@ -15,6 +15,12 @@ type ExchangeItem struct {
 	Status     int    `json:"status"`
 }
 
+type MessageItem struct {
+	Id    uint32 `json:"id"`
+	Title string `json:"title"`
+	Msg   string `json:"msg"`
+}
+
 type DbClientStruct struct {
 	location    string
 	FirstAmount int
@@ -88,6 +94,40 @@ func (this *DbClientStruct) SearchExchange(uid uint64) (ans []ExchangeItem, err 
 		ans = append(ans, tmp)
 		DebugLog.Write("[SearchExchange] id [%d] amount[%d] create_time[%s]", id, amount, create_time)
 	}
+	return
+}
+
+func (this *DbClientStruct) SearchNewMessage(idx int) (ans []MessageItem, err error) {
+	db, err := sql.Open("mysql", this.location)
+	if err != nil {
+		WarningLog.Write("[SearchNewMessage] connect mysql fail . err[%s]", err.Error())
+		return
+	}
+	defer db.Close()
+	sqlstr := fmt.Sprintf("SELECT * FROM news WHERE id > %d", idx)
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		WarningLog.Write("[SearchNewMessage] prepare sql fail . err[%s]", err.Error())
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id uint32
+		var title string
+		var message string
+		var modtime string
+		err = rows.Scan(&id, &title, &message, &modtime)
+		if err != nil {
+			WarningLog.Write("[SearchNewMessage] rows scanf fail . err[%s]", err.Error())
+			return
+		}
+		var tmp MessageItem
+		tmp.Id = id
+		tmp.Title = title
+		tmp.Msg = message
+		ans = append(ans, tmp)
+	}
+	DebugLog.Write("[SearchNewMessage] id [%d] new message len [%d]", idx, len(ans))
 	return
 }
 

@@ -35,12 +35,6 @@ type CommonResp struct {
 	Status uint32 `json:"status"`
 }
 
-type Message struct {
-	Id    uint32 `json:"id"`
-	Title string `json:"title"`
-	Msg   string `json:"msg"`
-}
-
 type AmountResp struct {
 	Amount uint32 `json:"amount"`
 	Total  uint32 `json:"total"`
@@ -191,13 +185,9 @@ func SearchNews(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var msgret []Message
-	var msgtmp Message
-	msgtmp.Id = 1
-	msgtmp.Title = "欢迎使用钱包锁屏"
-	msgtmp.Msg = "欢迎使用钱包锁屏"
-	msgret = append(msgret, msgtmp)
-	if idx >= len(msgret) {
+	var msgret []utils.MessageItem
+	msgret, err = utils.DbClient.SearchNewMessage(idx)
+	if err != nil {
 		resp.WriteHeader(http.StatusOK)
 		return
 	}
