@@ -35,6 +35,12 @@ type CommonResp struct {
 	Status uint32 `json:"status"`
 }
 
+type Message struct {
+	Id    uint32 `json:"id"`
+	Title string `json:"title"`
+	Msg   string `json:"msg"`
+}
+
 type AmountResp struct {
 	Amount uint32 `json:"amount"`
 	Total  uint32 `json:"total"`
@@ -170,7 +176,34 @@ func SearchExchange(resp http.ResponseWriter, req *http.Request) {
 }
 
 func SearchNews(resp http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	lastidstr := req.Form["lastid"]
+	if len(lastidstr) != 1 {
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	idx, err := strconv.Atoi(lastidstr[0])
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var msgret []Message
+	var msgtmp Message
+	msgtmp.Id = 1
+	msgtmp.Title = "欢迎使用钱包锁屏"
+	msgtmp.Msg = "欢迎使用钱包锁屏"
+	msgret = append(msgret, msgtmp)
+	if idx >= len(msgret) {
+		resp.WriteHeader(http.StatusOK)
+		return
+	}
+	res, err := json.Marshal(msgret)
 	resp.WriteHeader(http.StatusOK)
+	resp.Write(res)
 	return
 }
 func AddExchange(resp http.ResponseWriter, req *http.Request) {
