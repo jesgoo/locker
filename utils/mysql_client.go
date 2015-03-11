@@ -122,7 +122,7 @@ func (this *DbClientStruct) InsertExchange(uid uint64, method int, amount int) (
 		tx.Rollback()
 		return
 	}
-	dataOut, err = tx.Prepare("INSERT INTO cash SET user=? , amount=?, method=?, status=0")
+	dataOut, err = tx.Prepare("INSERT INTO cash SET user=? , amount=?, method=?, status=1")
 	if err != nil {
 		WarningLog.Write("[InsertExchange] prepare mysql fail. err[%s]", err.Error())
 		tx.Rollback()
