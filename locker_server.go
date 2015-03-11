@@ -31,6 +31,10 @@ type GlobalData struct {
 
 var globalConf GlobalData
 
+type CommonResp struct {
+	Status uint32 `json:"status"`
+}
+
 type AmountResp struct {
 	Amount uint32 `json:"amount"`
 	Total  uint32 `json:"total"`
@@ -183,24 +187,35 @@ func AddExchange(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	var uid uint64
+	var respx CommonResp
 	if len(tmpreq.Uid) != 11 {
 		utils.WarningLog.Write("uid len is not 11 . len[%d]", len(tmpreq.Uid))
-		resp.WriteHeader(http.StatusBadRequest)
-		return
+		respx.Status = 400
+		goto END
 	}
-	uid, err := strconv.ParseUint(tmpreq.Uid, 10, 64)
+	uid, err = strconv.ParseUint(tmpreq.Uid, 10, 64)
 	if err != nil {
 		utils.WarningLog.Write("parse uid str to int64 fail . err[%s]", err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
-		return
+		respx.Status = 400
+		goto END
 	}
 	err = utils.DbClient.InsertExchange(uid, tmpreq.Method, tmpreq.Amount)
 	if err != nil {
 		utils.WarningLog.Write("add exchange fail . err[%s]", err.Error())
+		respx.Status = 400
+		goto END
+	}
+	respx.Status = 200
+END:
+	ret, err := json.Marshal(respx)
+	if err != nil {
+		utils.WarningLog.Write("json marshal fail. err[%s]", err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	resp.WriteHeader(http.StatusOK)
+	resp.Write(ret)
 	return
 }
 
@@ -209,37 +224,49 @@ func AddUser(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 	}
+	var respx CommonResp
+	var uid uint64
+	var ret int
 	uidstr := req.Form["uid"]
 	if len(uidstr) != 1 {
 		utils.WarningLog.Write("no uid in request")
-		resp.WriteHeader(http.StatusBadRequest)
-		return
+		respx.Status = 400
+		goto END
 	}
 	if len(uidstr[0]) != 11 {
 		utils.WarningLog.Write("uid len is not 11 . len[%d]", len(uidstr[0]))
-		resp.WriteHeader(http.StatusBadRequest)
-		return
+		respx.Status = 400
+		goto END
 	}
-	uid, err := strconv.ParseUint(uidstr[0], 10, 64)
+	uid, err = strconv.ParseUint(uidstr[0], 10, 64)
 	if err != nil {
 		utils.WarningLog.Write("parse uid str to int64 fail . err[%s]", err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
-		return
+		respx.Status = 400
+		goto END
 	}
-	ret, err := utils.DbClient.AddUser(uid)
+	ret, err = utils.DbClient.AddUser(uid)
 	if err != nil {
 		utils.WarningLog.Write("dbclient add user fail . err[%s]", err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
-		return
+		respx.Status = 400
+		goto END
 	}
 	switch ret {
 	case 200:
-		resp.WriteHeader(http.StatusOK)
+		respx.Status = 200
 	case 204:
-		resp.WriteHeader(http.StatusNoContent)
+		respx.Status = 204
 	default:
-		resp.WriteHeader(http.StatusBadRequest)
+		respx.Status = 400
 	}
+END:
+	res, err := json.Marshal(respx)
+	if err != nil {
+		utils.WarningLog.Write("json marshal resp fail . err[%s]", err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	resp.WriteHeader(http.StatusOK)
+	resp.Write(res)
 	return
 }
 func main() {
